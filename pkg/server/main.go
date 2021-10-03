@@ -13,15 +13,22 @@ import (
 )
 
 func RunServer() {
-	db, err := repo.NewMysqlClient()
-	checkError(err)
+	db := registerDatabase()
 
 	ls := registerServices(db)
 
 	router := httprouter.New()
 	registerRoutes(router, ls)
 
+	log.Println("running server on :8000")
 	log.Fatal(http.ListenAndServe(":8000", router))
+}
+
+func registerDatabase() *sql.DB {
+	db, err := repo.NewMysqlClient()
+	checkError(err)
+
+	return db
 }
 
 func registerServices(db *sql.DB) *listing.Service {
@@ -41,6 +48,5 @@ func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
-		panic(err)
 	}
 }
