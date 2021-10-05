@@ -14,8 +14,9 @@ import (
 
 func RunServer() {
 	db := registerDatabase()
+	rd := registerRedis()
 
-	ls := registerServices(db)
+	ls := registerServices(db, rd)
 
 	router := httprouter.New()
 	registerRoutes(router, ls)
@@ -31,8 +32,14 @@ func registerDatabase() *sql.DB {
 	return db
 }
 
-func registerServices(db *sql.DB) *listing.Service {
-	ls := listing.Service{Conn: db}
+func registerRedis() *repo.RedisDB {
+	rd, err := repo.NewRedisClient()
+	checkError(err)
+	return rd
+}
+
+func registerServices(db *sql.DB, rd *repo.RedisDB) *listing.Service {
+	ls := listing.Service{Conn: db, Redis: rd}
 	return &ls
 }
 

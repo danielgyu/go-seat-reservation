@@ -3,7 +3,6 @@ package listing
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -12,11 +11,12 @@ import (
 )
 
 type Service struct {
-	Conn *sql.DB
+	Conn  *sql.DB
+	Redis *repo.RedisDB
 }
 
 type hallList struct {
-	HallList []repo.Hall `json:"hallList"`
+	HallList []string `json:"hallList"`
 }
 
 type ErrorResponse struct {
@@ -24,14 +24,16 @@ type ErrorResponse struct {
 }
 
 func (sv *Service) GetAllHalls(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	hallList, err := repo.GetAllHalls(sv.Conn)
+	allHalls, err := repo.GetAllHalls(sv.Conn)
 	if err != nil {
 		log.Println(err)
-		em, _ := json.Marshal(ErrorResponse{"Error"})
-		json.NewEncoder(w).Encode(em)
+		json.NewEncoder(w).Encode(ErrorResponse{"Error"})
 	} else {
-		jm, _ := json.Marshal(hallList)
-		fmt.Println(hallList, jm)
-		json.NewEncoder(w).Encode(jm)
+		allHallsRes := &hallList{HallList: allHalls}
+		json.NewEncoder(w).Encode(allHallsRes)
 	}
+}
+
+func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	oneHall, err := repo.GetOneHall(sv.Conn)
 }
