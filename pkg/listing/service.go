@@ -58,9 +58,14 @@ func (sv *Service) GetAllHalls(w http.ResponseWriter, r *http.Request, _ httprou
 func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, param httprouter.Params) {
 	hallId, err := strconv.Atoi(param.ByName("id"))
 	if err != nil {
-		log.Println(err)
+		log.Println("path param error:", err)
+	}
+
+	oneHall, err := repo.GetOneHall(sv.Conn, hallId)
+	if err != nil {
+		log.Println("error retrieving hall:", err)
 		return
 	}
-	oneHall, err := repo.GetOneHall(sv.Conn, hallId)
+
 	json.NewEncoder(w).Encode(oneHall)
 }

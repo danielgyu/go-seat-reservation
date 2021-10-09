@@ -2,9 +2,13 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
+	"strconv"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/julienschmidt/httprouter"
 )
 
 type RedisDB struct {
@@ -29,4 +33,22 @@ func NewRedisClient() (*RedisDB, error) {
 	return &RedisDB{
 		Client: client,
 	}, nil
+}
+
+func CheckCache(h httprouter.Handle, rd *RedisDB) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, param httprouter.Params) {
+		hallId, err := strconv.Atoi(param.ByName("id"))
+		if err != nil {
+			log.Println("path param error:", err)
+		}
+
+		ctx := context.Background()
+		res, err := rd.Client.Get(ctx, fmt.Sprintf("hall:%d", hallId)).Result()
+		if err == nil {
+			fmt.Fprintf(w, res)
+			return
+		}
+
+		h(w, r, param)
+	}
 }
