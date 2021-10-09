@@ -1,8 +1,10 @@
 package listing
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -25,6 +27,16 @@ type ErrorResponse struct {
 }
 
 func (sv *Service) GetAllHalls(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := context.Background()
+	res, err := sv.Redis.Client.Get(ctx, "allHalls").Result()
+	if err != nil {
+		log.Println("redis GET error:", res, err)
+	} else {
+		log.Println("found in redis cache:", res)
+		fmt.Fprintf(w, res)
+		return
+	}
+
 	allHalls, err := repo.GetAllHalls(sv.Conn)
 	if err != nil {
 		log.Println(err)
@@ -32,6 +44,14 @@ func (sv *Service) GetAllHalls(w http.ResponseWriter, r *http.Request, _ httprou
 		return
 	}
 	allHallsRes := &hallList{HallList: allHalls}
+	marshalled, marErr := json.Marshal(allHallsRes)
+	if marErr != nil {
+		log.Println("marshall error:", marErr)
+	}
+	rdErr := sv.Redis.Client.Set(ctx, "allHalls", marshalled, 0).Err()
+	if rdErr != nil {
+		log.Println("failed to cache:", rdErr)
+	}
 	json.NewEncoder(w).Encode(allHallsRes)
 }
 
