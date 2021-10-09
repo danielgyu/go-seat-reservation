@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	repo "github.com/danielgyu/seatreservation/pkg/repository"
 	"github.com/julienschmidt/httprouter"
@@ -16,7 +17,7 @@ type Service struct {
 }
 
 type hallList struct {
-	HallList []string `json:"hallList"`
+	HallList []repo.Hall `json:"hallList"`
 }
 
 type ErrorResponse struct {
@@ -28,12 +29,18 @@ func (sv *Service) GetAllHalls(w http.ResponseWriter, r *http.Request, _ httprou
 	if err != nil {
 		log.Println(err)
 		json.NewEncoder(w).Encode(ErrorResponse{"Error"})
-	} else {
-		allHallsRes := &hallList{HallList: allHalls}
-		json.NewEncoder(w).Encode(allHallsRes)
+		return
 	}
+	allHallsRes := &hallList{HallList: allHalls}
+	json.NewEncoder(w).Encode(allHallsRes)
 }
 
-func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	oneHall, err := repo.GetOneHall(sv.Conn)
+func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, param httprouter.Params) {
+	hallId, err := strconv.Atoi(param.ByName("id"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	oneHall, err := repo.GetOneHall(sv.Conn, hallId)
+	json.NewEncoder(w).Encode(oneHall)
 }

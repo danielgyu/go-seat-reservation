@@ -7,6 +7,8 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+// TODO
+
 type Database struct {
 	rdbms *sql.DB
 	cache *redis.Client
@@ -22,4 +24,20 @@ func (db *Database) GetString(ctx context.Context, key string) (string, error) {
 		return "", err
 	}
 	return val, nil
+}
+
+func (db *Database) Query(statement string) (*sql.Rows, error) {
+	rows, err := db.Query(statement)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func (db *Database) QueryRow(statement string) (*sql.Row, error) {
+	row, err := db.QueryRow(statement)
+	if err != nil {
+		return nil, err
+	}
+	return row, err
 }

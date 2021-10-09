@@ -20,8 +20,11 @@ func NewRedisClient() (*RedisDB, error) {
 	})
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		log.Fatal(err)
+		log.Println("unable to connect to redis")
+		panic(err)
 	}
+
+	log.Println("connected to redis")
 
 	return &RedisDB{
 		Client: client,

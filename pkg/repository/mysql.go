@@ -31,6 +31,8 @@ func NewMysqlClient() (*sql.DB, error) {
 }
 
 func retrieveConfig() (string, string, string) {
+	log.Println("retrieving mysql config...")
+
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
@@ -46,6 +48,8 @@ func retrieveConfig() (string, string, string) {
 }
 
 func getConfig(user string, passwd string, db string) mysql.Config {
+	log.Println("getting mysql config...")
+
 	cfg := mysql.Config{
 		User:   user,
 		Passwd: passwd,
@@ -56,16 +60,16 @@ func getConfig(user string, passwd string, db string) mysql.Config {
 }
 
 func pingDatabase(db *sql.DB) {
-	log.Println("pinging databse...")
+	log.Println("pinging mysql...")
+
 	count := 0
 	for count < 3 {
 		if pingErr := db.Ping(); pingErr != nil {
 			count++
 			time.Sleep(3 * time.Second)
 			continue
-		} else {
-			return
 		}
+		return
 	}
-	panic("unable to ping database")
+	panic("unable to ping mysql")
 }
