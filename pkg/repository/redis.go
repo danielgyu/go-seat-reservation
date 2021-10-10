@@ -44,7 +44,9 @@ func CheckCache(h httprouter.Handle, rd *RedisDB) httprouter.Handle {
 
 		ctx := context.Background()
 		res, err := rd.Client.Get(ctx, fmt.Sprintf("hall:%d", hallId)).Result()
+
 		if err == nil {
+			log.Println("found in cache")
 			fmt.Fprintf(w, res)
 			return
 		}

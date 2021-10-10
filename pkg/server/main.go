@@ -22,7 +22,7 @@ func RunServer() {
 	ls, cr, ud, de := registerServices(db, rd)
 
 	router := httprouter.New()
-	registerRoutes(router, ls, cr, ud, de)
+	registerRoutes(router, ls, cr, ud, de, rd)
 
 	log.Println("running server on :8000")
 	log.Fatal(http.ListenAndServe(":8000", router))
@@ -49,10 +49,10 @@ func registerServices(db *sql.DB, rd *repo.RedisDB) (*listing.Service, *creating
 	return &ls, &cr, &ud, &de
 }
 
-func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating.Service, ud *updating.Service, de *deleting.Service) {
+func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating.Service, ud *updating.Service, de *deleting.Service, rd *repo.RedisDB) {
 	router.GET("/", homePage)
 	router.GET("/halls", ls.GetAllHalls)
-	router.GET("/halls/:id", ls.GetOneHall)
+	router.GET("/halls/:id", repo.CheckCache(ls.GetOneHall, rd))
 	router.POST("/halls", cr.CreateHall)
 	router.PUT("/halls/", ud.UpdateHall)
 	router.DELETE("/halls/:id", de.DeleteHall)

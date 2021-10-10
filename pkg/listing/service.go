@@ -67,5 +67,17 @@ func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, param http
 		return
 	}
 
+	marshalled, marErr := json.Marshal(oneHall)
+	if marErr != nil {
+		log.Println("error marshalling hall:", marErr)
+	}
+
+	ctx := context.Background()
+	rdErr := sv.Redis.Client.Set(ctx, fmt.Sprintf("hall:%d", hallId), marshalled, 0).Err()
+	if rdErr != nil {
+		log.Println("error caching hall:", rdErr)
+		return
+	}
+
 	json.NewEncoder(w).Encode(oneHall)
 }
