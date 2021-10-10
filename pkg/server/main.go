@@ -1,10 +1,12 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -51,6 +53,8 @@ func registerServices(db *sql.DB, rd *repo.RedisDB) (*listing.Service, *creating
 
 func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating.Service, ud *updating.Service, de *deleting.Service, rd *repo.RedisDB) {
 	router.GET("/", homePage)
+	router.POST("/login", ls.LogIn)
+	router.POST("/signup", cr.SignUp)
 	router.GET("/halls", ls.GetAllHalls)
 	router.GET("/halls/:id", repo.CheckCache(ls.GetOneHall, rd))
 	router.POST("/halls", cr.CreateHall)
@@ -59,7 +63,18 @@ func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating
 }
 
 func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Fprintf(w, "Welcome!")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		select {
+		case <-r.Context().Done():
+			fmt.Println(ctx)
+			log.Println("request ended")
+		}
+	}()
+	time.Sleep(time.Second * 5)
+	fmt.Fprintf(w, "Welocme")
 }
 
 func checkError(err error) {

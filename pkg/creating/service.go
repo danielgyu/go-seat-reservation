@@ -9,6 +9,7 @@ import (
 
 	repo "github.com/danielgyu/seatreservation/pkg/repository"
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
@@ -41,4 +42,24 @@ func (sv *Service) CreateHall(w http.ResponseWriter, r *http.Request, _ httprout
 
 	suc := createHallSuccess{Id: id}
 	json.NewEncoder(w).Encode(suc)
+}
+
+func (sv *Service) SignUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var info repo.LogInInfo
+	err := json.NewDecoder(r.Body).Decode(&info)
+	if err != nil {
+		log.Println("request error:", err)
+		return
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(info.Password), 8)
+
+	info.Password = string(hashed)
+	signedUp, err := repo.SignUpUser(sv.Conn, info)
+	if err != nil {
+		log.Println("error signing up:", err)
+		return
+	}
+
+	json.NewEncoder(w).Encode(signedUp)
 }

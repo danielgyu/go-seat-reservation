@@ -81,3 +81,20 @@ func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, param http
 
 	json.NewEncoder(w).Encode(oneHall)
 }
+
+func (sv *Service) LogIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var logInInfo repo.LogInInfo
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&logInInfo); err != nil {
+		log.Println("request error:", err)
+		return
+	}
+
+	loggedIn, err := repo.SignInUser(sv.Conn, sv.Redis, logInInfo)
+	if err != nil {
+		log.Println("error logging in:", err)
+		return
+	}
+
+	json.NewEncoder(w).Encode(loggedIn)
+}
