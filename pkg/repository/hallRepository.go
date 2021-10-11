@@ -19,13 +19,20 @@ type UpdateHall struct {
 	Name string
 }
 
+type SeatReservation struct {
+	Reserved int
+	Capacity int
+}
+
 const QueryGetAllHalls string = "SELECT * FROM halls"
 
 var (
-	QueryGetOneHall string = "SELECT * FROM halls WHERE id = ?"
-	QueryInsertHall string = "INSERT into halls (name) VALUES (?)"
-	QueryUpdateHall string = "UPDATE halls SET name = ? WHERE id = ?"
-	QueryDeleteHall string = "DELETE FROM halls WHERE id = ?"
+	QueryGetOneHall   string = "SELECT * FROM halls WHERE id = ?"
+	QueryInsertHall   string = "INSERT into halls (name) VALUES (?)"
+	QueryUpdateHall   string = "UPDATE halls SET name = ? WHERE id = ?"
+	QueryDeleteHall   string = "DELETE FROM halls WHERE id = ?"
+	QueryReserved     string = "SELECT reserved, capacity FROM halls WHERE name = ?"
+	IncrementReserved string = "UPDATE halls SET reserved = reserved + 1 WHERE name = ?"
 )
 
 func GetAllHalls(db *sql.DB) ([]Hall, error) {
@@ -66,6 +73,7 @@ func CreateHall(db *sql.DB, hall InsertHall) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	id, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
@@ -95,6 +103,34 @@ func RemoveHall(db *sql.DB, hallId int) (int64, error) {
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return 0, err
+	}
+
+	return rows, nil
+}
+
+func ReserveSeat(db *sql.DB, hall string) (int64, error) {
+	var seat SeatReservation
+	if err := db.QueryRow(QueryReserved, hall).Scan(&seat.Reserved, &seat.Capacity); err != nil {
+		log.Println("error querying reservation:", err)
+		return 0, err
+	}
+
+	if seat.Reserved >= seat.Capacity {
+		log.Println("reservation full")
+		return 0, nil
+	}
+
+	// TODO need to add something to user related table as well
+	result, err := db.Exec(IncrementReserved, hall)
+	if err != nil {
+		log.Println("error incrementing", err)
+		return 0, nil
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		log.Println("error incrementing")
+		return 0, nil
 	}
 
 	return rows, nil

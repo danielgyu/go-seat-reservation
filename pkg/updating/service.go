@@ -20,6 +20,10 @@ type updateHallSuccess struct {
 	Rows int64 `json:"rowsAffected"`
 }
 
+type reserveSeatResult struct {
+	Result string `json:"result"`
+}
+
 func (sv *Service) UpdateHall(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	decoder := json.NewDecoder(r.Body)
 
@@ -39,6 +43,21 @@ func (sv *Service) UpdateHall(w http.ResponseWriter, r *http.Request, _ httprout
 	json.NewEncoder(w).Encode(suc)
 }
 
-func (sv *Service) ReserveSeat(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// TODO
+func (sv *Service) ReserveSeat(w http.ResponseWriter, r *http.Request, param httprouter.Params) {
+	// TODO 1 check if already reserved
+
+	// TODO 2 reserve seat
+	hall := param.ByName("hallName")
+
+	reserved, err := repo.ReserveSeat(sv.Conn, hall)
+	if err != nil {
+		log.Println("error reserving hall", err)
+	} else if !reserved {
+		fail := reserveSeatResult{Result: "failure"}
+		json.NewEncoder(w).Encode(fail)
+		return
+	}
+
+	suc := reserveSeatResult{Result: "success"}
+	json.NewEncoder(w).Encode(suc)
 }

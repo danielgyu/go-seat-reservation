@@ -124,18 +124,12 @@ func SignInAdmin(db *sql.DB, rd *RedisDB, info LogInInfo) (interface{}, error) {
 	if err := db.QueryRow(CheckAdmin, info.Username, info.Password).Scan(&lg.UserId, &lg.Status); err != nil {
 		log.Println("error logging in as admin:", err)
 		return LogInFailure{Status: "failure", Reason: "try again"}, nil
-	}
-
-	sessionToken := uuid.New().String()
-
-	if lg.Status != 1 {
+	} else if lg.Status != 1 {
 		return LogInFailure{Status: "failure", Reason: "not authroized"}, nil
 	}
 
-	err := rd.SetSession(sessionToken, lg.UserId)
-	if err != nil {
-		return LogInFailure{Status: "failure", Reason: "try again"}, nil
-	}
+	sessionToken := uuid.New().String()
+	rd.SetSession(sessionToken, lg.UserId)
 
 	return LogInSuccess{Status: "success", Token: sessionToken}, nil
 }

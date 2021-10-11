@@ -62,7 +62,7 @@ func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating
 	router.POST("/halls", md.CheckAuthentication(cr.CreateHall, db, rd))
 	router.PUT("/halls/", md.CheckAuthentication(ud.UpdateHall, db, rd))
 	router.DELETE("/halls/:id", md.CheckAuthentication(de.DeleteHall, db, rd))
-	router.GET("/halls/:hallName", ud.ReserveSeat)
+	router.GET("/reservation/:hallName", md.AddUserIdToContext(ud.ReserveSeat, rd))
 }
 
 func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

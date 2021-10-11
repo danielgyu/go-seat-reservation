@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,18 +14,26 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+func getUserIdWithAuth(r *http.Request, rd *repo.RedisDB) (int, error) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		return 0, errors.New("please include token")
+	}
+
+	userId, err := rd.GetSession(token)
+	if err != nil {
+		return 0, errors.New("session doesn't exist")
+	}
+
+	return userId, nil
+}
+
 func CheckAuthentication(h httprouter.Handle, db *sql.DB, rd *repo.RedisDB) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
-		token := r.Header.Get("Authorization")
-		if token == "" {
-			fmt.Fprintf(w, "please include token")
-			return
-		}
-
-		userId, err := rd.GetSession(token)
+		userId, err := getUserIdWithAuth(r, rd)
 		if err != nil {
-			fmt.Fprintf(w, "not in session")
+			fmt.Fprint(w, err)
 			return
 		}
 
@@ -55,5 +64,21 @@ func CheckCache(h httprouter.Handle, rd *repo.RedisDB) httprouter.Handle {
 		}
 
 		h(w, r, param)
+	}
+}
+
+func AddUserIdToContext(h httprouter.Handle, rd *repo.RedisDB) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		userId, err := getUserIdWithAuth(r, rd)
+		if err != nil {
+			log.Println(err)
+			fmt.Fprint(w, err)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "userId", userId)
+		r = r.WithContext(ctx)
+
+		h(w, r, p)
 	}
 }
