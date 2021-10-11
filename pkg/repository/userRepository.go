@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 
@@ -23,22 +22,56 @@ type User struct {
 	Status   int
 }
 
+type Token struct {
+	Token string `json:"token"`
+}
+
 type LoggedIn struct {
-	UserId   string
+	UserId   int
 	Password string
+}
+
+type LoggedInAdmin struct {
+	UserId int
+	Status int
 }
 
 type SignUpResult struct {
 	SignUpSuccess bool `json:"success"`
 }
 
-type LogInResult struct {
-	Token string `json:"token"`
+type LogInSuccess struct {
+	Status string `json:"status"`
+	Token  string `json:"token"`
 }
+
+type LogInFailure struct {
+	Status string `json:"status"`
+	Reason string `json:"reason"`
+}
+
+var CheckUserStatus = "SELECT status FROM users WHERE id = ?"
+
+var CheckAdmin = "SELECT id, status FROM users WHERE username = ? and password = ?"
 
 var InsertUser = "INSERT INTO users (username, password, status) VALUES(?, ?, ?)"
 
 var QueryUser = "SELECT id, password FROM users WHERE username = ?"
+
+func CheckAdminStatus(db *sql.DB, userId int) (bool, error) {
+	var status = new(int)
+
+	if err := db.QueryRow(CheckUserStatus, userId).Scan(status); err != nil {
+		log.Println("error checking status:", err)
+		return false, err
+	}
+
+	if *status != 1 {
+		return false, nil
+	}
+
+	return true, nil
+}
 
 func SignUpUser(db *sql.DB, info LogInInfo) (SignUpResult, error) {
 	result, err := db.Exec(InsertUser, info.Username, info.Password, 0)
@@ -56,19 +89,21 @@ func SignUpUser(db *sql.DB, info LogInInfo) (SignUpResult, error) {
 	return SignUpResult{SignUpSuccess: true}, nil
 }
 
-func SignInUser(db *sql.DB, rd *RedisDB, info LogInInfo) (LogInResult, error) {
+func SignInUser(db *sql.DB, rd *RedisDB, info LogInInfo) (interface{}, error) {
 	var lg LoggedIn
-	var res LogInResult
 
 	if err := db.QueryRow(QueryUser, info.Username).Scan(&lg.UserId, &lg.Password); err != nil {
+		var res = LogInFailure{Status: "failure"}
 		if err == sql.ErrNoRows {
-			return res, errors.New("no such user")
+			res.Reason = "no such user"
+			return res, err
 		}
+		res.Reason = err.Error()
 		return res, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(lg.Password), []byte(info.Password)); err != nil {
-		return res, err
+		return LogInFailure{Status: "failure", Reason: "no such user"}, nil
 	}
 
 	ctx := context.Background()
@@ -77,8 +112,30 @@ func SignInUser(db *sql.DB, rd *RedisDB, info LogInInfo) (LogInResult, error) {
 	err := rd.Client.Set(ctx, fmt.Sprintf("user:%s", sessionToken), lg.UserId, 0).Err()
 	if err != nil {
 		log.Println("error caching token:", err)
+		return LogInFailure{Status: "failure", Reason: "try again"}, nil
 	}
 
-	res.Token = sessionToken
-	return res, nil
+	return LogInSuccess{Status: "success", Token: sessionToken}, nil
+}
+
+func SignInAdmin(db *sql.DB, rd *RedisDB, info LogInInfo) (interface{}, error) {
+	var lg LoggedInAdmin
+
+	if err := db.QueryRow(CheckAdmin, info.Username, info.Password).Scan(&lg.UserId, &lg.Status); err != nil {
+		log.Println("error logging in as admin:", err)
+		return LogInFailure{Status: "failure", Reason: "try again"}, nil
+	}
+
+	sessionToken := uuid.New().String()
+
+	if lg.Status != 1 {
+		return LogInFailure{Status: "failure", Reason: "not authroized"}, nil
+	}
+
+	err := rd.SetSession(sessionToken, lg.UserId)
+	if err != nil {
+		return LogInFailure{Status: "failure", Reason: "try again"}, nil
+	}
+
+	return LogInSuccess{Status: "success", Token: sessionToken}, nil
 }

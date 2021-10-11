@@ -12,6 +12,7 @@ import (
 
 	"github.com/danielgyu/seatreservation/pkg/creating"
 	"github.com/danielgyu/seatreservation/pkg/deleting"
+	md "github.com/danielgyu/seatreservation/pkg/http"
 	"github.com/danielgyu/seatreservation/pkg/listing"
 	repo "github.com/danielgyu/seatreservation/pkg/repository"
 	"github.com/danielgyu/seatreservation/pkg/updating"
@@ -24,7 +25,7 @@ func RunServer() {
 	ls, cr, ud, de := registerServices(db, rd)
 
 	router := httprouter.New()
-	registerRoutes(router, ls, cr, ud, de, rd)
+	registerRoutes(router, ls, cr, ud, de, rd, db)
 
 	log.Println("running server on :8000")
 	log.Fatal(http.ListenAndServe(":8000", router))
@@ -51,15 +52,17 @@ func registerServices(db *sql.DB, rd *repo.RedisDB) (*listing.Service, *creating
 	return &ls, &cr, &ud, &de
 }
 
-func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating.Service, ud *updating.Service, de *deleting.Service, rd *repo.RedisDB) {
+func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating.Service, ud *updating.Service, de *deleting.Service, rd *repo.RedisDB, db *sql.DB) {
 	router.GET("/", homePage)
 	router.POST("/login", ls.LogIn)
+	router.POST("/admin", ls.AdminLogIn)
 	router.POST("/signup", cr.SignUp)
 	router.GET("/halls", ls.GetAllHalls)
-	router.GET("/halls/:id", repo.CheckCache(ls.GetOneHall, rd))
-	router.POST("/halls", cr.CreateHall)
-	router.PUT("/halls/", ud.UpdateHall)
-	router.DELETE("/halls/:id", de.DeleteHall)
+	router.GET("/halls/:id", md.CheckCache(ls.GetOneHall, rd))
+	router.POST("/halls", md.CheckAuthentication(cr.CreateHall, db, rd))
+	router.PUT("/halls/", md.CheckAuthentication(ud.UpdateHall, db, rd))
+	router.DELETE("/halls/:id", md.CheckAuthentication(de.DeleteHall, db, rd))
+	router.GET("/halls/:hallName", ud.ReserveSeat)
 }
 
 func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

@@ -38,3 +38,7 @@ func (sv *Service) UpdateHall(w http.ResponseWriter, r *http.Request, _ httprout
 	suc := updateHallSuccess{Rows: rowsAffected}
 	json.NewEncoder(w).Encode(suc)
 }
+
+func (sv *Service) ReserveSeat(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// TODO
+}

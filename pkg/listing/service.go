@@ -27,12 +27,8 @@ type ErrorResponse struct {
 }
 
 func (sv *Service) GetAllHalls(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := context.Background()
-	res, err := sv.Redis.Client.Get(ctx, "allHalls").Result()
-	if err != nil {
-		log.Println("redis GET error:", res, err)
-	} else {
-		log.Println("found in redis cache:", res)
+	res := sv.Redis.GetItem("allHalls")
+	if res != "" {
 		fmt.Fprintf(w, res)
 		return
 	}
@@ -43,16 +39,16 @@ func (sv *Service) GetAllHalls(w http.ResponseWriter, r *http.Request, _ httprou
 		json.NewEncoder(w).Encode(ErrorResponse{"Error"})
 		return
 	}
+
 	allHallsRes := &hallList{HallList: allHalls}
+	json.NewEncoder(w).Encode(allHallsRes)
+
 	marshalled, marErr := json.Marshal(allHallsRes)
 	if marErr != nil {
 		log.Println("marshall error:", marErr)
+	} else {
+		sv.Redis.SetItem("allHalls", marshalled)
 	}
-	rdErr := sv.Redis.Client.Set(ctx, "allHalls", marshalled, 0).Err()
-	if rdErr != nil {
-		log.Println("failed to cache:", rdErr)
-	}
-	json.NewEncoder(w).Encode(allHallsRes)
 }
 
 func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, param httprouter.Params) {
@@ -84,6 +80,7 @@ func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, param http
 
 func (sv *Service) LogIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var logInInfo repo.LogInInfo
+
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&logInInfo); err != nil {
 		log.Println("request error:", err)
@@ -93,8 +90,28 @@ func (sv *Service) LogIn(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	loggedIn, err := repo.SignInUser(sv.Conn, sv.Redis, logInInfo)
 	if err != nil {
 		log.Println("error logging in:", err)
-		return
 	}
 
 	json.NewEncoder(w).Encode(loggedIn)
+}
+
+func (sv *Service) AdminLogIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var logInInfo repo.LogInInfo
+
+	err := json.NewDecoder(r.Body).Decode(&logInInfo)
+	if err != nil {
+		log.Println("request error", err)
+	}
+
+	isAdmin, err := repo.SignInAdmin(sv.Conn, sv.Redis, logInInfo)
+	if err != nil {
+		log.Println("error logging in as admin:", err)
+	}
+
+	if err != nil {
+		w.WriteHeader(404)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "access denied"})
+	}
+
+	json.NewEncoder(w).Encode(isAdmin)
 }
