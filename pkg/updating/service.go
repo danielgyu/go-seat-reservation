@@ -44,15 +44,32 @@ func (sv *Service) UpdateHall(w http.ResponseWriter, r *http.Request, _ httprout
 }
 
 func (sv *Service) ReserveSeat(w http.ResponseWriter, r *http.Request, param httprouter.Params) {
-	// TODO 1 check if already reserved
-
-	// TODO 2 reserve seat
 	hall := param.ByName("hallName")
 
+	available, err := repo.CheckAvailableSeat(sv.Conn, hall)
+	if !available {
+		fail := reserveSeatResult{Result: "failure"}
+		json.NewEncoder(w).Encode(fail)
+		return
+	}
+
+	userId, _ := r.Context().Value("userId").(int)
+	alreadyReserved, err := repo.CheckReserveStatus(sv.Conn, hall, userId)
+	if err != nil || alreadyReserved {
+		fail := reserveSeatResult{Result: "failure"}
+		json.NewEncoder(w).Encode(fail)
+		return
+	}
+
 	reserved, err := repo.ReserveSeat(sv.Conn, hall)
-	if err != nil {
-		log.Println("error reserving hall", err)
-	} else if !reserved {
+	if err != nil || reserved == 0 {
+		fail := reserveSeatResult{Result: "failure"}
+		json.NewEncoder(w).Encode(fail)
+		return
+	}
+
+	confirmed, err := repo.ConfirmReservation(sv.Conn, hall, userId)
+	if err != nil || confirmed == 0 {
 		fail := reserveSeatResult{Result: "failure"}
 		json.NewEncoder(w).Encode(fail)
 		return

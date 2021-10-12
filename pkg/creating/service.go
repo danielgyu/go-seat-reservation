@@ -17,10 +17,6 @@ type Service struct {
 	Redis *repo.RedisDB
 }
 
-type createHall struct {
-	Name string
-}
-
 type createHallSuccess struct {
 	Id int64 `json:"id"`
 }

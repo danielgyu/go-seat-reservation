@@ -54,15 +54,15 @@ func registerServices(db *sql.DB, rd *repo.RedisDB) (*listing.Service, *creating
 
 func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating.Service, ud *updating.Service, de *deleting.Service, rd *repo.RedisDB, db *sql.DB) {
 	router.GET("/", homePage)
+	router.GET("/halls", ls.GetAllHalls)
+	router.GET("/halls/:id", md.CheckCache(ls.GetOneHall, rd))
 	router.POST("/login", ls.LogIn)
 	router.POST("/admin", ls.AdminLogIn)
 	router.POST("/signup", cr.SignUp)
-	router.GET("/halls", ls.GetAllHalls)
-	router.GET("/halls/:id", md.CheckCache(ls.GetOneHall, rd))
 	router.POST("/halls", md.CheckAuthentication(cr.CreateHall, db, rd))
+	router.GET("/reservation/:hallName", md.AddUserIdToContext(ud.ReserveSeat, rd))
 	router.PUT("/halls/", md.CheckAuthentication(ud.UpdateHall, db, rd))
 	router.DELETE("/halls/:id", md.CheckAuthentication(de.DeleteHall, db, rd))
-	router.GET("/reservation/:hallName", md.AddUserIdToContext(ud.ReserveSeat, rd))
 }
 
 func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

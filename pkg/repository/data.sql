@@ -26,3 +26,10 @@ CREATE TABLE halls (
     capacity INTEGER,
     reserved INTEGER DEFAULT 0
 );
+
+DROP TABLE IF EXISTS reserves;
+CREATE TABLE reserves (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    user_id INTEGER,
+    hall_name VARCHAR(64)
+);
