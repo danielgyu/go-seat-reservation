@@ -111,7 +111,7 @@ func RemoveHall(db *sql.DB, hallId int) (int64, error) {
 	return rows, nil
 }
 
-func CheckAvailableSeat(db *sql.DB, hall string) (bool, error) {
+func CheckAvailableSeat(db *sql.Tx, hall string) (bool, error) {
 	var seat SeatReservation
 	if err := db.QueryRow(QueryReserved, hall).Scan(&seat.Reserved, &seat.Capacity); err != nil {
 		log.Println("error querying reservation:", err)
@@ -126,7 +126,7 @@ func CheckAvailableSeat(db *sql.DB, hall string) (bool, error) {
 	return true, nil
 }
 
-func CheckReserveStatus(db *sql.DB, hall string, userId int) (alreadyReserved bool, err error) {
+func CheckReserveStatus(db *sql.Tx, hall string, userId int) (alreadyReserved bool, err error) {
 	var exists = new(int)
 	if err = db.QueryRow(QueryUserReserve, userId, hall).Scan(exists); err != nil {
 		log.Println("error querying reserves:", err)
@@ -141,7 +141,7 @@ func CheckReserveStatus(db *sql.DB, hall string, userId int) (alreadyReserved bo
 	return
 }
 
-func ReserveSeat(db *sql.DB, hall string) (int64, error) {
+func ReserveSeat(db *sql.Tx, hall string) (int64, error) {
 
 	result, err := db.Exec(IncrementReserved, hall)
 	if err != nil {
@@ -158,7 +158,7 @@ func ReserveSeat(db *sql.DB, hall string) (int64, error) {
 	return rows, nil
 }
 
-func ConfirmReservation(db *sql.DB, hall string, userId int) (int64, error) {
+func ConfirmReservation(db *sql.Tx, hall string, userId int) (int64, error) {
 	result, err := db.Exec(InsertConfirmation, userId, hall)
 	if err != nil {
 		log.Println("error querying:", err)

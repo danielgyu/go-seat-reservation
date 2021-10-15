@@ -24,6 +24,11 @@ type reserveSeatResult struct {
 	Result string `json:"result"`
 }
 
+func sendErrorRes(w http.ResponseWriter) {
+	fail := reserveSeatResult{Result: "failure"}
+	json.NewEncoder(w).Encode(fail)
+}
+
 func (sv *Service) UpdateHall(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	decoder := json.NewDecoder(r.Body)
 
@@ -46,32 +51,41 @@ func (sv *Service) UpdateHall(w http.ResponseWriter, r *http.Request, _ httprout
 func (sv *Service) ReserveSeat(w http.ResponseWriter, r *http.Request, param httprouter.Params) {
 	hall := param.ByName("hallName")
 
-	available, err := repo.CheckAvailableSeat(sv.Conn, hall)
+	tx, err := sv.Conn.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("Database failure")
+		tx.Rollback()
+		sendErrorRes(w)
+		return
+	}
+
+	available, err := repo.CheckAvailableSeat(tx, hall)
 	if !available {
-		fail := reserveSeatResult{Result: "failure"}
-		json.NewEncoder(w).Encode(fail)
+		tx.Rollback()
+		sendErrorRes(w)
 		return
 	}
 
 	userId, _ := r.Context().Value("userId").(int)
-	alreadyReserved, err := repo.CheckReserveStatus(sv.Conn, hall, userId)
+	fmt.Println("userId:", userId)
+	alreadyReserved, err := repo.CheckReserveStatus(tx, hall, userId)
 	if err != nil || alreadyReserved {
-		fail := reserveSeatResult{Result: "failure"}
-		json.NewEncoder(w).Encode(fail)
+		tx.Rollback()
+		sendErrorRes(w)
 		return
 	}
 
-	reserved, err := repo.ReserveSeat(sv.Conn, hall)
+	reserved, err := repo.ReserveSeat(tx, hall)
 	if err != nil || reserved == 0 {
-		fail := reserveSeatResult{Result: "failure"}
-		json.NewEncoder(w).Encode(fail)
+		tx.Rollback()
+		sendErrorRes(w)
 		return
 	}
 
-	confirmed, err := repo.ConfirmReservation(sv.Conn, hall, userId)
+	confirmed, err := repo.ConfirmReservation(tx, hall, userId)
 	if err != nil || confirmed == 0 {
-		fail := reserveSeatResult{Result: "failure"}
-		json.NewEncoder(w).Encode(fail)
+		tx.Rollback()
+		sendErrorRes(w)
 		return
 	}
 
