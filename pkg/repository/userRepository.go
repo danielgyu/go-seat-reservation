@@ -50,13 +50,13 @@ type LogInFailure struct {
 	Reason string `json:"reason"`
 }
 
-var CheckUserStatus = "SELECT status FROM users WHERE id = ?"
-
-var CheckAdmin = "SELECT id, status FROM users WHERE username = ? and password = ?"
-
-var InsertUser = "INSERT INTO users (username, password, status) VALUES(?, ?, ?)"
-
-var QueryUser = "SELECT id, password FROM users WHERE username = ?"
+var (
+	CheckUserStatus = "SELECT status FROM users WHERE id = ?"
+	CheckAdmin      = "SELECT id, status FROM users WHERE username = ? and password = ?"
+	InsertUser      = "INSERT INTO users (username, password, status) VALUES(?, ?, ?)"
+	QueryUser       = "SELECT id, password FROM users WHERE username = ?"
+	EmptyUserTable  = "DELETE FROM users"
+)
 
 func CheckAdminStatus(db *sql.DB, userId int) (bool, error) {
 	var status = new(int)
@@ -132,4 +132,13 @@ func SignInAdmin(db *sql.DB, rd *RedisDB, info LogInInfo) (interface{}, error) {
 	rd.SetSession(sessionToken, lg.UserId)
 
 	return LogInSuccess{Status: "success", Token: sessionToken}, nil
+}
+
+func DeleteAllUsers(db *sql.DB) bool {
+	_, err := db.Exec(EmptyUserTable)
+	if err != nil {
+		log.Println("database error")
+		return false
+	}
+	return true
 }

@@ -63,6 +63,7 @@ func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating
 	router.GET("/reservation/:hallName", md.AddUserIdToContext(ud.ReserveSeat, rd))
 	router.PUT("/halls/", md.CheckAuthentication(ud.UpdateHall, db, rd))
 	router.DELETE("/halls/:id", md.CheckAuthentication(de.DeleteHall, db, rd))
+	router.DELETE("/users", de.DeleteAllUsers)
 }
 
 func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -73,11 +74,11 @@ func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		select {
 		case <-r.Context().Done():
 			fmt.Println(ctx)
-			log.Println("request ended")
+			log.Println("Request ended early")
 		}
 	}()
 	time.Sleep(time.Second * 5)
-	fmt.Fprintf(w, "Welocme")
+	fmt.Fprintf(w, "Welocme, thanks for waiting")
 }
 
 func checkError(err error) {

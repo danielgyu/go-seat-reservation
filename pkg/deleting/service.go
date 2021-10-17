@@ -25,3 +25,11 @@ func (sv *Service) DeleteHall(w http.ResponseWriter, r *http.Request, param http
 	rows, err := repo.RemoveHall(sv.Conn, hallId)
 	json.NewEncoder(w).Encode(rows)
 }
+
+func (sv *Service) DeleteAllUsers(w http.ResponseWriter, r *http.Request, param httprouter.Params) {
+	deleted := repo.DeleteAllUsers(sv.Conn)
+	if !deleted {
+		return
+	}
+	json.NewEncoder(w).Encode(deleted)
+}

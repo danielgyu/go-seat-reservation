@@ -67,7 +67,6 @@ func (sv *Service) ReserveSeat(w http.ResponseWriter, r *http.Request, param htt
 	}
 
 	userId, _ := r.Context().Value("userId").(int)
-	fmt.Println("userId:", userId)
 	alreadyReserved, err := repo.CheckReserveStatus(tx, hall, userId)
 	if err != nil || alreadyReserved {
 		tx.Rollback()
@@ -89,6 +88,7 @@ func (sv *Service) ReserveSeat(w http.ResponseWriter, r *http.Request, param htt
 		return
 	}
 
+	tx.Commit()
 	suc := reserveSeatResult{Result: "success"}
 	json.NewEncoder(w).Encode(suc)
 }

@@ -22,6 +22,7 @@ type createHallSuccess struct {
 }
 
 func (sv *Service) CreateHall(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
 
 	var hall repo.InsertHall
@@ -41,6 +42,7 @@ func (sv *Service) CreateHall(w http.ResponseWriter, r *http.Request, _ httprout
 }
 
 func (sv *Service) SignUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 	var info repo.LogInInfo
 	err := json.NewDecoder(r.Body).Decode(&info)
 	if err != nil {

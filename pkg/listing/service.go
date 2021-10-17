@@ -79,6 +79,7 @@ func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, param http
 }
 
 func (sv *Service) LogIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 	var logInInfo repo.LogInInfo
 
 	decoder := json.NewDecoder(r.Body)
@@ -96,6 +97,7 @@ func (sv *Service) LogIn(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 }
 
 func (sv *Service) AdminLogIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	defer r.Body.Close()
 	var logInInfo repo.LogInInfo
 
 	err := json.NewDecoder(r.Body).Decode(&logInInfo)
