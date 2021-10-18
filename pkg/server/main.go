@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -27,7 +28,7 @@ func RunServer() {
 	router := httprouter.New()
 	registerRoutes(router, ls, cr, ud, de, rd, db)
 
-	log.Println("running server on :8000")
+	log.Println("running server on :8000, pid:", os.Getpid())
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
 

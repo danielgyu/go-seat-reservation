@@ -42,9 +42,9 @@ func (sv *Service) CreateHall(w http.ResponseWriter, r *http.Request, _ httprout
 }
 
 func (sv *Service) SignUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	defer r.Body.Close()
 	var info repo.LogInInfo
 	err := json.NewDecoder(r.Body).Decode(&info)
+	r.Body.Close()
 	if err != nil {
 		log.Println("request error:", err)
 		return

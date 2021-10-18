@@ -79,7 +79,6 @@ func (sv *Service) GetOneHall(w http.ResponseWriter, r *http.Request, param http
 }
 
 func (sv *Service) LogIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	defer r.Body.Close()
 	var logInInfo repo.LogInInfo
 
 	decoder := json.NewDecoder(r.Body)
@@ -87,6 +86,7 @@ func (sv *Service) LogIn(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		log.Println("request error:", err)
 		return
 	}
+	r.Body.Close()
 
 	loggedIn, err := repo.SignInUser(sv.Conn, sv.Redis, logInInfo)
 	if err != nil {

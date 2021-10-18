@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -15,7 +16,7 @@ import (
 const localhost string = "http://localhost:8000"
 const appjson string = "application/json"
 const hallName string = "sarang"
-const newUserCount int = 500
+const newUserCount int = 999
 
 type TokenBody struct {
 	Status string
@@ -33,8 +34,9 @@ func makeUrl(endpoint string) string {
 }
 
 func main() {
+	log.Println("started client with pid:", os.Getpid())
 	deleteAllUsers()
-	log.Println("Deleted all users success")
+	log.Println("succesfully deleted all users")
 
 	for i := 0; i < newUserCount; i++ {
 		createUser(strconv.Itoa(i))
