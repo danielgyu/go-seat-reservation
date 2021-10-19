@@ -11,6 +11,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/danielgyu/seatreservation/pkg/channeling"
 	"github.com/danielgyu/seatreservation/pkg/creating"
 	"github.com/danielgyu/seatreservation/pkg/deleting"
 	md "github.com/danielgyu/seatreservation/pkg/http"
@@ -24,9 +25,10 @@ func RunServer() {
 	rd := registerRedis()
 
 	ls, cr, ud, de := registerServices(db, rd)
+	cs := registerChanneling()
 
 	router := httprouter.New()
-	registerRoutes(router, ls, cr, ud, de, rd, db)
+	registerRoutes(router, ls, cr, ud, de, cs, rd, db)
 
 	log.Println("running server on :8000, pid:", os.Getpid())
 	log.Fatal(http.ListenAndServe(":8000", router))
@@ -53,7 +55,13 @@ func registerServices(db *sql.DB, rd *repo.RedisDB) (*listing.Service, *creating
 	return &ls, &cr, &ud, &de
 }
 
-func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating.Service, ud *updating.Service, de *deleting.Service, rd *repo.RedisDB, db *sql.DB) {
+func registerChanneling() *channeling.Service {
+	uhChan := make(chan *channeling.UserHall)
+	cs := channeling.Service{ReservationChan: uhChan}
+	return &cs
+}
+
+func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating.Service, ud *updating.Service, de *deleting.Service, cs *channeling.Service, rd *repo.RedisDB, db *sql.DB) {
 	router.GET("/", homePage)
 	router.GET("/halls", ls.GetAllHalls)
 	router.GET("/halls/:id", md.CheckCache(ls.GetOneHall, rd))
@@ -61,7 +69,8 @@ func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating
 	router.POST("/admin", ls.AdminLogIn)
 	router.POST("/signup", cr.SignUp)
 	router.POST("/halls", md.CheckAuthentication(cr.CreateHall, db, rd))
-	router.GET("/reservation/:hallName", md.AddUserIdToContext(ud.ReserveSeat, rd))
+	//router.GET("/reservation/:hallName", md.AddUserIdToContext(ud.ReserveSeat, rd))
+	router.GET("/reservation/:hallName", md.AddUserIdToContext(cs.ReserveSeat, rd))
 	router.PUT("/halls/", md.CheckAuthentication(ud.UpdateHall, db, rd))
 	router.DELETE("/halls/:id", md.CheckAuthentication(de.DeleteHall, db, rd))
 	router.DELETE("/users", de.DeleteAllUsers)
