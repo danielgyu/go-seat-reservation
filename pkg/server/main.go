@@ -56,7 +56,7 @@ func registerServices(db *sql.DB, rd *repo.RedisDB) (*listing.Service, *creating
 }
 
 func registerChanneling() *channeling.Service {
-	uhChan := make(chan *channeling.UserHall)
+	uhChan := make(chan *channeling.UserHall, 200)
 	cs := channeling.Service{ReservationChan: uhChan}
 	return &cs
 }
@@ -69,11 +69,11 @@ func registerRoutes(router *httprouter.Router, ls *listing.Service, cr *creating
 	router.POST("/admin", ls.AdminLogIn)
 	router.POST("/signup", cr.SignUp)
 	router.POST("/halls", md.CheckAuthentication(cr.CreateHall, db, rd))
-	//router.GET("/reservation/:hallName", md.AddUserIdToContext(ud.ReserveSeat, rd))
-	router.GET("/reservation/:hallName", md.AddUserIdToContext(cs.ReserveSeat, rd))
+	router.GET("/reservation/:hallName", md.AddUserIdToContext(ud.ReserveSeat, rd))
 	router.PUT("/halls/", md.CheckAuthentication(ud.UpdateHall, db, rd))
 	router.DELETE("/halls/:id", md.CheckAuthentication(de.DeleteHall, db, rd))
 	router.DELETE("/users", de.DeleteAllUsers)
+	router.GET("/channel/:hallName", cs.ReserveSeat)
 }
 
 func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

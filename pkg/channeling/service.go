@@ -18,14 +18,14 @@ type Service struct {
 }
 
 func (sv *Service) ReserveSeat(w http.ResponseWriter, r *http.Request, param httprouter.Params) {
-	userId, _ := r.Context().Value("userId").(int)
+	tempUserId := 0
 	hall := param.ByName("hallName")
 
 	if len(sv.ReservationChan) == cap(sv.ReservationChan) {
 		fmt.Fprintf(w, "hall is full")
 		return
 	}
-	sv.ReservationChan <- &UserHall{userId, hall, w}
+	sv.ReservationChan <- &UserHall{tempUserId, hall, w}
 	fmt.Fprintf(w, "reservation success")
 }
 
